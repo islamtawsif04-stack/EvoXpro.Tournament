@@ -1,9 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVO X PRO | Elite Tournament Platform</title>
+    
+    <!-- CSS & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght=400;600;800;900&display=swap" rel="stylesheet">
+    
+    <!-- ==========================================
+          CRITICAL FIX: FIREBASE CORE & SERVICES 
+         (কাস্টম জাভাস্ক্রিপ্ট কোডের অবশ্যই উপরে থাকতে হবে)
+         ========================================== -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: #111827; 
+            user-select: none; 
+            overflow-x: hidden; 
+            margin: 0; 
+            padding: 0; 
+        }
+        .page { 
+            display: none; 
+            min-height: 100vh; 
+            padding-bottom: 120px; 
+            opacity: 0; 
+            transform: translateY(20px); 
+            transition: all 0.4s ease; 
+        }
+        .page.active { 
+            display: block !important; 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
+        .bottom-nav { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; right: 0; 
+            width: 100%; 
+            background: #1f2937; 
+            z-index: 10000; 
+            border-top: 1px solid #374151; 
+        }
+        .glow-card { 
+            background: #1f2937; 
+            border: 1px solid #374151; 
+            transition: all 0.3s ease; 
+        }
+        .glow-card:hover { 
+            border-color: #eab308; 
+            box-shadow: 0 10px 25px rgba(234, 179, 8, 0.15); 
+            transform: translateY(-3px); 
+        }
+        .btn-animate { 
+            transition: all 0.2s ease; 
+        }
+        .btn-animate:active { 
+            transform: scale(0.95); 
+        }
+    </style>
+</head>
+<body>
+<div class="text-white min-h-screen">
+    
+    <!-- Maintenance UI -->
+    <div id="m-ui" class="hidden absolute inset-0 z-[99999] bg-slate-950 flex flex-col items-center justify-center text-center p-8">
+        <div class="bg-yellow-500 text-black p-5 rounded-full mb-6 animate-bounce">
+            <i class="fa-solid fa-wrench text-4xl"></i>
+        </div>
+        <h1 class="text-3xl font-black italic mb-2 text-yellow-500">SERVER DOWN</h1>
+        <p class="text-slate-400 text-sm">Update চলছে। কিছুক্ষণের মধ্যে আমরা ফিরছি!</p>
+    </div>
+
+    <!-- App Header -->
+    <header class="sticky top-0 z-[1000] p-5 flex justify-between items-center bg-gray-900/90 backdrop-blur-md border-b border-gray-800">
+        <div>
+            <h1 class="text-2xl font-black italic text-white leading-none">EVO X <span class="text-yellow-500">PRO</span></h1>
+            <p class="text-[8px] font-bold text-slate-500 tracking-widest uppercase">Elite Gaming Hub</p>
+        </div>
+        <div id="user-header" class="flex items-center gap-3">
+            <button onclick="login()" class="bg-yellow-500 text-black px-5 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg btn-animate">Login</button>
+        </div>
+    </header>
+
+    <!-- Home Page / Match Categories -->
+    <div id="home" class="page active p-5 max-w-7xl mx-auto">
+        <div class="rounded-[2.5rem] overflow-hidden shadow-2xl mb-6 h-48 border-4 border-gray-800 relative group">
+            <img id="main-banner" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-950/80 to-transparent"></div>
+        </div>
+                
+        <div class="bg-gray-900 text-white p-2.5 rounded-2xl mb-6 flex items-center gap-3 border border-gray-800">
+            <span class="bg-yellow-500 text-black text-[8px] px-2 py-1 rounded font-black">NEWS</span>
+            <marquee id="notice" class="text-xs font-bold italic text-yellow-500/90">Welcome to EVO X PRO Platform!</marquee>
+        </div>
+                
+        <h2 class="font-black text-lg mb-4 italic uppercase flex items-center gap-2">
+            <i class="fa-solid fa-gamepad text-yellow-500"></i> Select Game Mode
+        </h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="category-grid"></div>
+        <div class="h-28 w-full"></div>
+    </div>
+
+    <!-- Match Details Page -->
+    <div id="match-details" class="page p-5 max-w-4xl mx-auto">
+        <div class="flex items-center gap-4 mb-6">
+            <button onclick="showP('home')" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center border border-gray-700 btn-animate">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <h2 id="match-cat-title" class="text-xl font-black italic uppercase text-yellow-500">Matches</h2>
+        </div>
+        <div id="matches-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        <div class="h-28 w-full"></div>
+    </div>
+
+    <!-- Results Page -->
+    <div id="results" class="page p-5 max-w-4xl mx-auto">
+        <h2 class="text-xl font-black italic uppercase text-yellow-500 mb-6">
+            <i class="fa-solid fa-trophy"></i> Match Results & Winners
+        </h2>
+        <div id="results-container" class="space-y-4">Loading results...</div>
+        <div class="h-28 w-full"></div>
+    </div>
+
+    <!-- Wallet / User Profile Page -->
+    <div id="wallet" class="page p-6 max-w-2xl mx-auto">
+        <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+            <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl">
+                <p class="text-[8px] text-slate-500 font-bold uppercase">Played</p>
+                <p id="stat-played" class="text-sm font-black text-white">0</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl">
+                <p class="text-[8px] text-slate-500 font-bold uppercase">Total Kills</p>
+                <p id="stat-kills" class="text-sm font-black text-red-500">0</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 p-3 rounded-2xl">
+                <p class="text-[8px] text-slate-500 font-bold uppercase">Total Won</p>
+                <p id="stat-won" class="text-sm font-black text-green-500">৳0</p>
+            </div>
+        </div>
+                
+        <div class="bg-gradient-to-br from-gray-900 to-slate-900 border border-gray-800 rounded-[3rem] p-8 text-center mb-6 shadow-2xl">
+            <div id="my-short-id" class="inline-block bg-yellow-500/10 text-yellow-500 font-black text-[10px] px-4 py-1.5 rounded-full mb-4 border border-yellow-500/20">ID: -----</div>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Your Balance</p>
+            <h1 class="text-4xl font-black italic text-white">৳<span id="u-bal" class="text-yellow-500">0.00</span></h1>
+        </div>
+                
+        <div class="flex gap-2 mb-6 bg-gray-900 p-2 rounded-2xl border border-gray-800">
+            <button onclick="switchTab('dep-tab')" id="btn-dep" class="flex-1 py-3.5 rounded-xl font-black text-[10px] uppercase bg-gray-800 text-yellow-500 border border-gray-700 shadow-md btn-animate">Deposit</button>
+            <button onclick="switchTab('wd-tab')" id="btn-wd" class="flex-1 py-3.5 rounded-xl font-black text-[10px] uppercase text-slate-400 btn-animate">Withdraw</button>
+        </div>
+                
+        <!-- Deposit System -->
+        <div id="dep-tab" class="tab-content space-y-4">
+            <div class="bg-gray-900 p-6 rounded-[2.5rem] border border-gray-800">
+                <div class="bg-yellow-500/5 p-5 rounded-3xl border border-yellow-500/10 mb-6 text-center">
+                    <p class="text-[9px] font-black text-yellow-500 uppercase mb-1">Bkash/Nagad Personal</p>
+                    <h3 id="adm-num-dep" class="text-2xl font-black text-white tracking-widest italic">01700000000</h3>
+                </div>
+                <input type="number" id="dep-amt" placeholder="Enter Amount" class="w-full p-4 bg-gray-800 border border-gray-700 text-white rounded-2xl outline-none mb-3 font-bold">
+                <input type="text" id="dep-trx" placeholder="TrxID (Transaction ID)" class="w-full p-4 bg-gray-800 border border-gray-700 text-white rounded-2xl outline-none mb-6 font-bold">
+                <button onclick="moneyRequest('Deposit')" class="w-full bg-yellow-500 text-black py-4 rounded-2xl font-black text-[11px] uppercase shadow-xl btn-animate">Submit Request</button>
+            </div>
+        </div>
+                
+        <!-- Withdraw System -->
+        <div id="wd-tab" class="tab-content hidden space-y-4">
+            <div class="bg-gray-900 p-6 rounded-[2.5rem] border border-gray-800">
+                <input type="number" id="wd-amt" placeholder="Withdraw Amount" class="w-full p-4 bg-gray-800 border border-gray-700 text-white rounded-2xl outline-none mb-3 font-bold">
+                <input type="text" id="wd-num" placeholder="Your BKash/Nagad Number" class="w-full p-4 bg-gray-800 border border-gray-700 text-white rounded-2xl outline-none mb-6 font-bold">
+                <button onclick="moneyRequest('Withdraw')" class="w-full bg-red-500 text-white py-4 rounded-2xl font-black text-[11px] uppercase shadow-xl btn-animate">Withdraw Money</button>
+            </div>
+        </div>
+        <div class="h-28 w-full"></div>
+    </div>
+
+    <!-- Admin Panel Page -->
+    <div id="admin" class="page p-6 max-w-5xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-black italic uppercase text-yellow-500"><i class="fa-solid fa-shield-halved"></i> Admin Panel</h2>
+            <button onclick="showP('home')" class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl font-black text-[10px] text-red-400 uppercase btn-animate">Exit Admin</button>
+        </div>
+                                        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <!-- Add Match Box -->
+            <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem] space-y-3">
+                <h4 class="text-xs font-black uppercase text-white"><i class="fa-solid fa-plus text-green-500"></i> Add New Match</h4>
+                <select id="m-cat" onchange="autoFillTitle()" class="w-full p-3 bg-gray-800 border border-gray-700 text-white rounded-xl text-xs font-bold outline-none">
+                    <option value="Lone Wolf 1v1">Lone Wolf 1v1</option>
+                    <option value="BR Solo Classic">BR Solo Classic</option>
+                    <option value="Duo Custom">Duo Custom</option>
+                </select>
+                <input type="text" id="m-title" placeholder="Match Title" class="w-full p-3 bg-gray-800 border border-gray-700 text-white rounded-xl text-xs font-bold">
+                <input type="text" id="m-time" placeholder="Match Time" class="w-full p-3 bg-gray-800 border border-gray-700 text-white rounded-xl text-xs font-bold">
+                <input type="number" id="m-fee" placeholder="Entry Fee (TK)" class="w-full p-3 bg-gray-800 border border-gray-700 text-white rounded-xl text-xs font-bold">
+                <input type="number" id="m-prize" placeholder="Total Prize (TK)" class="w-full p-3 bg-gray-800 border border-gray-700 text-white rounded-xl text-xs font-bold">
+                <input type="number" id="m-perkill" placeholder="Per Kill Bonus (TK)" value="0" class="w-full p-3 bg-gray-800 border border-gray-700 text-white rounded-xl text-xs font-bold">
+                <input type="number" id="m-slots" placeholder="Total Slots" class="w-full p-3 bg-gray-800 border border-gray-700 text-white rounded-xl text-xs font-bold">
+                <button onclick="addMatch()" class="w-full bg-green-600 text-white py-3 rounded-xl font-black text-[10px] uppercase btn-animate">Add Match Live</button>
+            </div>
+                        
+            <!-- Admin Extra Actions -->
+            <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem] space-y-4">
+                <h4 class="text-xs font-black uppercase text-gray-400"><i class="fa-solid fa-search"></i> Search Member & Add Cash</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="s-id" placeholder="User Short ID" class="flex-1 p-3 bg-gray-800 border border-gray-700 text-white rounded-xl font-bold text-xs">
+                    <button onclick="searchUser()" class="bg-yellow-500 text-black px-5 rounded-xl btn-animate"><i class="fa-solid fa-search"></i></button>
+                </div>
+                <div id="res-div" class="hidden p-4 bg-gray-800 border border-yellow-500 rounded-2xl">
+                    <p id="res-name" class="text-xs font-black mb-3 text-white"></p>
+                    <div class="flex gap-2">
+                        <input type="number" id="add-amt" placeholder="Amount" class="w-full p-2 bg-gray-700 border border-gray-600 text-white rounded-lg font-bold text-xs">
+                        <button onclick="addCashDirect()" class="bg-green-600 text-white px-4 rounded-lg font-black text-[10px] btn-animate">ADD</button>
+                    </div>
+                </div>
+                <button id="srv-btn" onclick="toggleServer()" class="w-full py-3.5 rounded-xl font-black text-[10px] border uppercase btn-animate"></button>
+            </div>
+                        
+            <!-- Match Controls -->
+            <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem] md:col-span-2">
+                <h4 class="text-xs font-black uppercase text-yellow-500 tracking-wider mb-3"><i class="fa-solid fa-edit"></i> Live Match Control & Result Submission</h4>
+                <div id="admin-matches-control" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            </div>
+                        
+            <!-- Transaction Lists -->
+            <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem]">
+                <h4 class="text-xs font-black uppercase text-blue-500 mb-3"><i class="fa-solid fa-clock"></i> Pending Deposits</h4>
+                <div id="admin-dep-list" class="space-y-3 text-[11px]">Loading...</div>
+            </div>
+                        
+            <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem]">
+                <h4 class="text-xs font-black uppercase text-red-500 mb-3"><i class="fa-solid fa-clock"></i> Pending Withdraws</h4>
+                <div id="admin-wd-list" class="space-y-3 text-[11px]">Loading...</div>
+            </div>
+        </div>
+        <div class="h-28 w-full"></div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav flex justify-around p-4 shadow-lg">
+        <div class="nav-item text-yellow-500 flex flex-col items-center cursor-pointer" onclick="showP('home', this)"><i class="fa-solid fa-gamepad text-xl"></i><span class="text-[9px] font-black mt-1 uppercase">Play</span></div>
+        <div class="nav-item text-slate-500 flex flex-col items-center cursor-pointer" onclick="showP('results', this)"><i class="fa-solid fa-trophy text-xl"></i><span class="text-[9px] font-black mt-1 uppercase">Results</span></div>
+        <div class="nav-item text-slate-500 flex flex-col items-center cursor-pointer" onclick="showP('wallet', this)"><i class="fa-solid fa-wallet text-xl"></i><span class="text-[9px] font-black mt-1 uppercase">Profile</span></div>
+        <div class="nav-item text-slate-500 flex flex-col items-center cursor-pointer" onclick="adminLogin()"><i class="fa-solid fa-user-shield text-xl"></i><span class="text-[9px] font-black mt-1 uppercase">Admin</span></div>
+    </nav>
+</div>
+
+<!-- ==========================================
+     MAIN LOGIC SCRIPTS (FIREBASE INITIALIZATION)
+     ========================================== -->
 <script>
-    // --- [NEW CONFIG] FIREBASE CONFIG INITIALIZED (V8 COMPATIBLE) ---
+    // --- FIREBASE CONFIG CONFIGURATION (V8 FORMAT MATCHED) ---
     const firebaseConfig = {
       apiKey: "AIzaSyBhL1_ZDpGTb4DLyDeu4EyWbAhHolVrVDE",
       authDomain: "evoxpro-33b80.firebaseapp.com",
-      // আপনার নতুন সিঙ্গাপুর রিজিয়নের ডাটাবেজ ইউআরএল
       databaseURL: "https://evoxpro-33b80-default-rtdb.asia-southeast1.firebasedatabase.app", 
       projectId: "evoxpro-33b80",
       storageBucket: "evoxpro-33b80.firebasestorage.app",
@@ -11,14 +268,14 @@
       appId: "1:775232967856:web:cb2ddea734434d893f1775"
     };
         
-    // ফায়ারবেস ইনিশিয়ালাইজেশন
+    // Initialize services
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const auth = firebase.auth();
 
     let myData = null, myUID = null, targetUID = null, allMatches = {}, currentServerStatus = "on", selectedCategory = "";
 
-    // --- NAVIGATION FUNCTION ---
+    // --- NAVIGATION LOGIC ---
     function showP(pageId, element) {
         document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
         const targetPage = document.getElementById(pageId);
@@ -33,7 +290,7 @@
         }
     }
 
-    // --- GLOBAL ADMIN LOGIN FUNCTION ---
+    // --- ADMIN ACCESS GATE ---
     function adminLogin() {
         const pass = prompt("Enter Admin Password:");
         if(pass === "tawsif728027") { 
@@ -43,7 +300,7 @@
         }
     }
 
-    // Categories Data Setup
+    // Static Categories Rendering
     const categories = [
         { name: "Lone Wolf 1v1", img: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop" },
         { name: "BR Solo Classic", img: "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=400&auto=format&fit=crop" },
@@ -58,7 +315,6 @@
         });
     }
 
-    // Open Matches function
     function openMatches(categoryName) {
         selectedCategory = categoryName;
         document.getElementById('match-cat-title').innerText = categoryName;
@@ -66,7 +322,7 @@
         showP('match-details');
     }
 
-    // Render Live Matches for Users
+    // USER SIDE: Live matches reader
     function renderCategoryMatches(categoryName) {
         const container = document.getElementById('matches-container');
         if(!container) return;
@@ -130,7 +386,7 @@
         }
     }
 
-    // --- USER LOGIN & LOGOUT SYSTEM ---
+    // --- GOOGLE AUTHENTICATION SYSTEM ---
     function login() {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).then(function(res) {
@@ -151,6 +407,7 @@
 
     function logout() { if(confirm("Logout করবেন?")) auth.signOut().then(function() { location.reload(); }); }
 
+    // Listening User Session Status
     auth.onAuthStateChanged(function(user) {
         if(user) {
             myUID = user.uid;
@@ -166,7 +423,7 @@
         }
     });
 
-    // --- WALLET & MONEY REQUESTS ---
+    // --- GATEWAY FOR BALANCES REQUESTS ---
     function moneyRequest(type) {
         if(!myUID) return alert("প্রথমে লগইন করুন!");
         if(type === 'Deposit') {
@@ -203,7 +460,7 @@
         }
     }
 
-    // --- JOIN TOURNAMENT SYSTEM ---
+    // --- ACTION TO REGISTER INTO MATCH ---
     function joinMatchPopup(matchKey, fee, isFull) {
         if(!myUID) return alert("ম্যাচে জয়েন করতে প্রথমে লগইন করুন!");
         if(isFull) return alert("এই ম্যাচের সব স্লট ফিলাপ হয়ে গেছে!");
@@ -226,7 +483,7 @@
         }).then(function() { alert("Successfully Joined the Tournament!"); });
     }
 
-    // --- ADD NEW MATCH FUNCTION ---
+    // --- CREATE NEW MATCHES FOR DATABASE ---
     function addMatch() {
         const category = document.getElementById('m-cat').value;
         const title = document.getElementById('m-title').value.trim();
@@ -247,7 +504,7 @@
         });
     }
 
-    // --- SEARCH USER & DIRECT CASH ADD ---
+    // --- ADMIN USER MANIPULATION SYSTEM ---
     function searchUser() {
         const shortId = document.getElementById('s-id').value.trim();
         if(!shortId) return alert("ID দিন!");
@@ -275,7 +532,6 @@
         });
     }
 
-    // --- UPDATE ROOM ID / PASS ---
     function updateRoomLive(key) {
         const rId = document.getElementById('rid-' + key).value.trim();
         const rPass = document.getElementById('rpass-' + key).value.trim();
@@ -284,14 +540,13 @@
         });
     }
 
-    // --- DELETE MATCH ---
     function deleteMatch(key) {
         if(confirm("ম্যাচটি ডিলিট করতে চান?")) {
             db.ref('matches/' + key).remove().then(() => alert("Match Deleted!"));
         }
     }
 
-    // --- SERVER CONTROL ---
+    // Server Controller Toggle
     function toggleServer() {
         const nextStatus = currentServerStatus === "on" ? "off" : "on";
         db.ref('app_stats/server').set(nextStatus);
@@ -311,7 +566,7 @@
         }
     });
 
-    // Listen to Matches data
+    // Main event stream for updates 
     db.ref('matches').on('value', function(snap) {
         allMatches = snap.val() || {};
         if (selectedCategory) renderCategoryMatches(selectedCategory);
@@ -319,7 +574,7 @@
         renderResults();
     });
 
-    // --- RENDER RESULTS PAGE FOR USERS ---
+    // --- ARCHIVED HIGHLIGHTS PAGE FOR COMPLETED EVENTS ---
     function renderResults() {
         const resContainer = document.getElementById('results-container');
         if(!resContainer) return;
@@ -350,7 +605,7 @@
         if(!hasResult) resContainer.innerHTML = '<p class="text-center text-slate-500 text-xs font-bold py-8">No Match Results Published Yet.</p>';
     }
 
-    // --- ADMIN CONTROLS RENDERING ---
+    // --- ADMINISTRATIVE LOGIC CONTROLLERS RENDERER ---
     function renderAdminControl() {
         const adminMatchesControl = document.getElementById('admin-matches-control');
         if(!adminMatchesControl) return;
@@ -373,6 +628,7 @@
         }
     }
 
+    // Dynamic stream for wallet balance approvals
     db.ref('money_requests').on('value', function(snap) {
         const depList = document.getElementById('admin-dep-list');
         const wdList = document.getElementById('admin-wd-list');
@@ -411,7 +667,7 @@
         db.ref('money_requests/' + key).update({ status: 'rejected' }).then(function() { alert("Request Rejected!"); });
     }
 
-    // SUBMIT AND PUBLISH RESULT LIST
+    // PROCESS AND DISBURSE WINNING CALCULATIONS
     function submitMatchResult(matchKey) {
         if(!confirm("আপনি কি নিশ্চিত এই ম্যাচের রেজাল্ট পাবলিশ করতে চান?")) return;
         const m = allMatches[matchKey];
@@ -453,3 +709,5 @@
         });
     }
 </script>
+</body>
+</html>
