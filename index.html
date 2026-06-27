@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght=400;600;800;900&display=swap" rel="stylesheet">
     
     <!-- ==========================================
-          CRITICAL FIX: FIREBASE CORE & SERVICES 
+         CRITICAL FIX: FIREBASE CORE & SERVICES 
          (কাস্টম জাভাস্ক্রিপ্ট কোডের অবশ্যই উপরে থাকতে হবে)
          ========================================== -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -69,15 +69,6 @@
 </head>
 <body>
 <div class="text-white min-h-screen">
-    
-    <!-- Maintenance UI -->
-    <div id="m-ui" class="hidden absolute inset-0 z-[99999] bg-slate-950 flex flex-col items-center justify-center text-center p-8">
-        <div class="bg-yellow-500 text-black p-5 rounded-full mb-6 animate-bounce">
-            <i class="fa-solid fa-wrench text-4xl"></i>
-        </div>
-        <h1 class="text-3xl font-black italic mb-2 text-yellow-500">SERVER DOWN</h1>
-        <p class="text-slate-400 text-sm">Update চলছে। কিছুক্ষণের মধ্যে আমরা ফিরছি!</p>
-    </div>
 
     <!-- App Header -->
     <header class="sticky top-0 z-[1000] p-5 flex justify-between items-center bg-gray-900/90 backdrop-blur-md border-b border-gray-800">
@@ -188,7 +179,7 @@
             <h2 class="text-2xl font-black italic uppercase text-yellow-500"><i class="fa-solid fa-shield-halved"></i> Admin Panel</h2>
             <button onclick="showP('home')" class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl font-black text-[10px] text-red-400 uppercase btn-animate">Exit Admin</button>
         </div>
-                                        
+                                                
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             <!-- Add Match Box -->
             <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem] space-y-3">
@@ -206,7 +197,7 @@
                 <input type="number" id="m-slots" placeholder="Total Slots" class="w-full p-3 bg-gray-800 border border-gray-700 text-white rounded-xl text-xs font-bold">
                 <button onclick="addMatch()" class="w-full bg-green-600 text-white py-3 rounded-xl font-black text-[10px] uppercase btn-animate">Add Match Live</button>
             </div>
-                        
+                                
             <!-- Admin Extra Actions -->
             <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem] space-y-4">
                 <h4 class="text-xs font-black uppercase text-gray-400"><i class="fa-solid fa-search"></i> Search Member & Add Cash</h4>
@@ -221,21 +212,20 @@
                         <button onclick="addCashDirect()" class="bg-green-600 text-white px-4 rounded-lg font-black text-[10px] btn-animate">ADD</button>
                     </div>
                 </div>
-                <button id="srv-btn" onclick="toggleServer()" class="w-full py-3.5 rounded-xl font-black text-[10px] border uppercase btn-animate"></button>
             </div>
-                        
+                                
             <!-- Match Controls -->
             <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem] md:col-span-2">
                 <h4 class="text-xs font-black uppercase text-yellow-500 tracking-wider mb-3"><i class="fa-solid fa-edit"></i> Live Match Control & Result Submission</h4>
                 <div id="admin-matches-control" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
             </div>
-                        
+                                
             <!-- Transaction Lists -->
             <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem]">
                 <h4 class="text-xs font-black uppercase text-blue-500 mb-3"><i class="fa-solid fa-clock"></i> Pending Deposits</h4>
                 <div id="admin-dep-list" class="space-y-3 text-[11px]">Loading...</div>
             </div>
-                        
+                                
             <div class="p-5 bg-gray-900 border border-gray-800 rounded-[2.5rem]">
                 <h4 class="text-xs font-black uppercase text-red-500 mb-3"><i class="fa-solid fa-clock"></i> Pending Withdraws</h4>
                 <div id="admin-wd-list" class="space-y-3 text-[11px]">Loading...</div>
@@ -273,7 +263,7 @@
     const db = firebase.database();
     const auth = firebase.auth();
 
-    let myData = null, myUID = null, targetUID = null, allMatches = {}, currentServerStatus = "on", selectedCategory = "";
+    let myData = null, myUID = null, targetUID = null, allMatches = {}, selectedCategory = "";
 
     // --- NAVIGATION LOGIC ---
     function showP(pageId, element) {
@@ -544,169 +534,6 @@
         if(confirm("ম্যাচটি ডিলিট করতে চান?")) {
             db.ref('matches/' + key).remove().then(() => alert("Match Deleted!"));
         }
-    }
-
-    // Server Controller Toggle
-    function toggleServer() {
-        const nextStatus = currentServerStatus === "on" ? "off" : "on";
-        db.ref('app_stats/server').set(nextStatus);
-    }
-
-    db.ref('app_stats/server').on('value', function(snap) {
-        currentServerStatus = snap.val() || "on";
-        const srvBtn = document.getElementById('srv-btn');
-        const mUi = document.getElementById('m-ui');
-        if(srvBtn) {
-            srvBtn.innerText = currentServerStatus === "on" ? "STOP SERVER (MAINTENANCE)" : "START SERVER LIVE";
-            srvBtn.className = currentServerStatus === "on" ? "w-full py-3.5 rounded-xl font-black text-[10px] border border-red-500 text-red-500 uppercase btn-animate" : "w-full py-3.5 rounded-xl font-black text-[10px] border border-green-500 text-green-500 uppercase btn-animate";
-        }
-        if(mUi) {
-            if(currentServerStatus === "off") mUi.classList.remove('hidden');
-            else mUi.classList.add('hidden');
-        }
-    });
-
-    // Main event stream for updates 
-    db.ref('matches').on('value', function(snap) {
-        allMatches = snap.val() || {};
-        if (selectedCategory) renderCategoryMatches(selectedCategory);
-        renderAdminControl();
-        renderResults();
-    });
-
-    // --- ARCHIVED HIGHLIGHTS PAGE FOR COMPLETED EVENTS ---
-    function renderResults() {
-        const resContainer = document.getElementById('results-container');
-        if(!resContainer) return;
-        resContainer.innerHTML = "";
-        let hasResult = false;
-
-        for(let key in allMatches) {
-            const m = allMatches[key];
-            if(m.status === 'completed') {
-                hasResult = true;
-                let winnersHTML = '<div class="mt-2 space-y-1 text-xs text-slate-400">';
-                if(m.winners) {
-                    m.winners.forEach(w => {
-                        winnersHTML += `<p><span class="text-white font-bold">${w.gameName}</span> - Kills: ${w.kills} | Won: ৳${w.won} ${w.isBooyah ? '' : ''}</p>`;
-                    });
-                }
-                winnersHTML += '</div>';
-
-                resContainer.innerHTML += `
-                    <div class="bg-gray-900 border border-gray-800 p-5 rounded-[2.5rem]">
-                        <h4 class="text-sm font-black text-yellow-500 italic uppercase">${m.title}</h4>
-                        <p class="text-[9px] text-slate-500 font-bold uppercase mb-2">Category: ${m.category}</p>
-                        <hr class="border-gray-800">
-                        ${winnersHTML}
-                    </div>`;
-            }
-        }
-        if(!hasResult) resContainer.innerHTML = '<p class="text-center text-slate-500 text-xs font-bold py-8">No Match Results Published Yet.</p>';
-    }
-
-    // --- ADMINISTRATIVE LOGIC CONTROLLERS RENDERER ---
-    function renderAdminControl() {
-        const adminMatchesControl = document.getElementById('admin-matches-control');
-        if(!adminMatchesControl) return;
-        adminMatchesControl.innerHTML = "";
-        for(let key in allMatches) {
-            const m = allMatches[key];
-            if(m.status === 'completed') continue; 
-            const joinedCount = m.joinedPlayers ? Object.keys(m.joinedPlayers).length : 0;
-            let playerListHTML = "";
-            if(m.joinedPlayers) {
-                playerListHTML = '<div class="bg-gray-950/60 p-2 rounded-xl mt-2 space-y-2 max-h-48 overflow-y-auto">';
-                for(let pUID in m.joinedPlayers) {
-                    const pData = m.joinedPlayers[pUID];
-                    playerListHTML += '<div class="bg-gray-900 p-2 rounded border border-gray-800 text-[10px] space-y-1"><p class="text-white font-bold"> Name: ' + pData.gameName + ' | UID: ' + pData.gameUID + '</p><div class="flex gap-1 items-center"><input type="number" id="kill-' + key + '-' + pUID + '" placeholder="Kills" class="w-12 p-1 bg-gray-800 border border-gray-700 rounded text-white text-center"><label class="text-[9px] text-yellow-500 flex items-center gap-1 ml-2"><input type="checkbox" id="booyah-' + key + '-' + pUID + '"> Booyah?</label></div></div>';
-                }
-                playerListHTML += '</div>';
-            } else { playerListHTML = '<p class="text-[10px] text-gray-500 font-bold italic mt-2">No players joined yet.</p>'; }
-                                                
-            adminMatchesControl.innerHTML += '<div class="bg-gray-800 p-4 border border-gray-700 rounded-[2rem] space-y-3 text-xs relative mb-2"><button onclick="deleteMatch(\'' + key + '\')" class="absolute top-3 right-3 text-red-500 text-sm p-1"><i class="fa-solid fa-trash-can"></i></button><div class="font-black text-white pr-6"><span class="text-yellow-500">[' + m.category + ']</span> ' + m.title + '<div class="text-[10px] text-gray-400 font-bold">Slots: ' + joinedCount + '/' + (m.slots || 50) + ' | Per Kill: ৳' + (m.perkill || 0) + '</div></div>' + playerListHTML + '<div class="flex gap-2"><input type="text" id="rid-' + key + '" placeholder="Room ID" value="' + (m.roomId || '') + '" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono text-[11px]"><input type="text" id="rpass-' + key + '" placeholder="Room Pass" value="' + (m.roomPass || '') + '" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono text-[11px]"></div><div class="flex gap-2"><button onclick="updateRoomLive(\'' + key + '\')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-black text-[10px] uppercase">Update Room</button><button onclick="submitMatchResult(\'' + key + '\')" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-black text-[10px] uppercase">Publish Result</button></div></div>';
-        }
-    }
-
-    // Dynamic stream for wallet balance approvals
-    db.ref('money_requests').on('value', function(snap) {
-        const depList = document.getElementById('admin-dep-list');
-        const wdList = document.getElementById('admin-wd-list');
-        if(!depList || !wdList) return;
-        depList.innerHTML = ""; wdList.innerHTML = "";
-        const requests = snap.val();
-        if(!requests) {
-            depList.innerHTML = "No requests found."; wdList.innerHTML = "No requests found."; return;
-        }                                        
-        for(let key in requests) {
-            const req = requests[key];
-            if(req.status !== 'pending') continue;
-            const elementHTML = '<div class="p-3 bg-gray-800 border border-gray-700 rounded-xl flex justify-between items-center mb-2"><div><p class="font-black text-white">' + req.name + ' (ID: ' + req.shortId + ')</p><p class="text-[9px] text-slate-400">' + (req.type === 'Deposit' ? 'TrxID' : 'Number') + ': <b class="text-yellow-500 font-mono">' + req.info + '</b></p><p class="font-black text-green-500 mt-1">৳' + req.amount + '</p></div><div class="flex flex-col gap-1"><button onclick="approveRequest(\'' + key + '\', \'' + req.type + '\', \'' + req.uid + '\', ' + req.amount + ')" class="bg-green-600 text-white px-3 py-1.5 rounded-lg font-black text-[9px] uppercase">Approve</button><button onclick="rejectRequest(\'' + key + '\', \'' + req.type + '\', \'' + req.uid + '\', ' + req.amount + ')" class="bg-red-600 text-white px-3 py-1.5 rounded-lg font-black text-[9px] uppercase">Reject</button></div></div>';
-            if(req.type === 'Deposit') depList.innerHTML += elementHTML;
-            else wdList.innerHTML += elementHTML;
-        }
-    });
-
-    function approveRequest(key, type, uid, amt) {
-        if(type === 'Deposit') {
-            db.ref('users/' + uid).transaction(function(user) {
-                if(user) user.balance = (user.balance || 0) + amt;
-                return user;
-            });
-        }
-        db.ref('money_requests/' + key).update({ status: 'approved' }).then(function() { alert("Request Approved!"); });
-    }
-
-    function rejectRequest(key, type, uid, amt) {
-        if(type === 'Withdraw') {
-            db.ref('users/' + uid).transaction(function(user) {
-                if(user) user.balance = (user.balance || 0) + amt;
-                return user;
-            });
-        }
-        db.ref('money_requests/' + key).update({ status: 'rejected' }).then(function() { alert("Request Rejected!"); });
-    }
-
-    // PROCESS AND DISBURSE WINNING CALCULATIONS
-    function submitMatchResult(matchKey) {
-        if(!confirm("আপনি কি নিশ্চিত এই ম্যাচের রেজাল্ট পাবলিশ করতে চান?")) return;
-        const m = allMatches[matchKey];
-        if(!m.joinedPlayers) {
-            db.ref('matches/' + matchKey).update({ status: 'completed' });
-            return alert("কোনো প্লেয়ার না থাকায় ম্যাচ ক্লোজ করা হলো।");
-        }
-        const perKillPrize = m.perkill || 0;
-        let matchWinnersLog = [];
-
-        for(let pUID in m.joinedPlayers) {
-            const pData = m.joinedPlayers[pUID];
-            const killInput = document.getElementById('kill-' + matchKey + '-' + pUID);
-            const booyahCheck = document.getElementById('booyah-' + matchKey + '-' + pUID);                                                                        
-            
-            const kills = killInput ? Math.max(0, parseInt(killInput.value) || 0) : 0;
-            const isBooyah = booyahCheck ? booyahCheck.checked : false;
-            let totalPrizeWon = kills * perKillPrize;
-            if(isBooyah) totalPrizeWon += (m.prize || 0); 
-
-            db.ref('users/' + pUID).transaction(function(user) {
-                if(user) {
-                    user.balance = (user.balance || 0) + totalPrizeWon;
-                    user.matchesPlayed = (user.matchesPlayed || 0) + 1;
-                    user.totalKills = (user.totalKills || 0) + kills;
-                    user.totalWon = (user.totalWon || 0) + totalPrizeWon;
-                }
-                return user;
-            });
-            matchWinnersLog.push({ gameName: pData.gameName, gameUID: pData.gameUID, kills: kills, won: totalPrizeWon, isBooyah: isBooyah });
-        }                                        
-        
-        db.ref('matches/' + matchKey).update({
-            status: 'completed',
-            winners: matchWinnersLog,
-            completedAt: Date.now()
-        }).then(() => {
-            alert("Results Published and Match Closed Successfully!");
-        });
     }
 </script>
 </body>
